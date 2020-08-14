@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "PROD=true node server.js",
-    "postinstall": "cd ./client && yarn",
+    "postinstall": "cd ./client && node",
     "dev": "nodemon server.js"
   },
   "author": "ivantembe",

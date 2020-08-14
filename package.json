@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "PROD=true node server.js",
-    "postinstall": "cd ./client && npm run build",
+    "build": "cd client && npm run build",
+    "postinstall": "cd ./client && node",
     "dev": "nodemon server.js"
   },
   "author": "ivantembe",

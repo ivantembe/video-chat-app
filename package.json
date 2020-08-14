@@ -5,8 +5,6 @@
   "main": "index.js",
   "scripts": {
     "start": "PROD=true node server.js",
-    "build": "cd ./client && npm run build",
-    "install": "cd ./client && npm install",
     "postinstall": "cd ./client && node",
     "dev": "nodemon server.js"
   },

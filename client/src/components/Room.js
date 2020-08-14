@@ -22,7 +22,7 @@ function Room(props) {
         userStream.current = stream;
         console.log("--> Local video stream:", stream);
 
-        socketRef.current = io("http://localhost:8081");
+        socketRef.current = io();
         socketRef.current.emit("joinRoom", props.match.params.roomID);
 
         socketRef.current.on("otherUser", (userId) => {

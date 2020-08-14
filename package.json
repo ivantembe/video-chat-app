@@ -5,9 +5,13 @@
   "main": "index.js",
   "scripts": {
     "start": "PROD=true node server.js",
-    "postinstall": "cd ./client && node",
+    "build": "cd ./client && npm install && npm run build",
     "dev": "nodemon server.js"
   },
+  "cacheDirectories": [
+    "node_modules",
+    "client/node_modules"
+  ],
   "author": "ivantembe",
   "license": "ISC",
   "dependencies": {

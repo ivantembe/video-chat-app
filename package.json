@@ -1,0 +1,21 @@
+{
+  "name": "video-chat-w0919",
+  "version": "1.0.0",
+  "description": "A video chat app w/ webRTC from scratch",
+  "main": "index.js",
+  "scripts": {
+    "start": "PROD=true node server.js",
+    "postinstall": "cd ./client && yarn",
+    "dev": "nodemon server.js"
+  },
+  "author": "ivantembe",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}

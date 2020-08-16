@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
+import "./styles.css";
 
 function Room(props) {
   const localVideo = useRef();
@@ -8,6 +9,8 @@ function Room(props) {
   const socketRef = useRef();
   const otherUser = useRef();
   const userStream = useRef();
+  const [videoWindowSize, setVideWindowSize] = useState("local-video");
+  const [remoteVideoWindow, setRemoteVideoWindow] = useState("");
 
   useEffect(() => {
     navigator.getUserMedia =
@@ -140,12 +143,28 @@ function Room(props) {
 
   const handleOnTrack = (e) => {
     remoteVideo.current.srcObject = e.streams[0];
+    setVideWindowSize("mini-video");
+    setRemoteVideoWindow("remote-video");
   };
 
   return (
-    <div>
-      <video autoPlay ref={localVideo} />
-      <video autoPlay ref={remoteVideo} />
+    <div className="room-container">
+      <div className="videos-container">
+        {remoteVideoWindow === "" ? (
+          <span ref={remoteVideo} />
+        ) : (
+          <video className={remoteVideoWindow} autoPlay ref={remoteVideo} />
+        )}
+        <video className={videoWindowSize} autoPlay ref={localVideo} />
+      </div>
+
+      <div className="chat-container">
+        <div className="chat-header">
+          <b>Chat</b>
+        </div>
+        <div className="chat-output"></div>
+        <div className="chat-input">start typing...</div>
+      </div>
     </div>
   );
 }

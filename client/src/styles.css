@@ -1,0 +1,43 @@
+body {
+  /* background-color: #3d6df2; */
+  margin-top: 15px;
+}
+
+video {
+  background: black;
+  border: 1px solid gray;
+  object-fit: cover;
+}
+
+.container {
+  position: relative;
+  display: block;
+  margin: 0 auto;
+  width: 700px;
+  height: 500px;
+}
+
+.local {
+  width: 180px;
+  height: 180px;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.remote {
+  width: 700px;
+  height: 500px;
+}
+
+.leave-chat-btn {
+  position: absolute;
+  left: 15px;
+  top: 460px;
+}
+
+.messages {
+  background-color: #4242;
+  width: 400px;
+  height: 150px;
+}

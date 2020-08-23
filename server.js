@@ -10,32 +10,51 @@ const io = socket(server);
 const rooms = {};
 
 io.on("connection", (socket) => {
-  socket.on("joinRoom", (roomID) => {
-    if (rooms[roomID]) {
-      rooms[roomID].push(socket.id);
+  console.log(`>>> New connection`);
+
+  socket.on("disconnecting", (message) => {
+    console.log(`>>> User ${message}`);
+    console.log(`>>> Disconnect message: ${message}`);
+  });
+
+  /* CREATE OR JOIN ROOM */
+  socket.on("createOrJoinRoom", (room) => {
+    if (rooms[room]) {
+      const usersInRoom = rooms[room].length;
+      const joiner = socket.id;
+
+      if (usersInRoom === 1) {
+        rooms[room].push(joiner);
+        console.log(`>>> Joiner-${joiner} just joined room`);
+        socket.broadcast.emit("userJoinedRoom", joiner);
+      } else {
+        socket.emit("fullRoomMessage", joiner);
+        console.log(`>>> Room is already full!`);
+      }
     } else {
-      rooms[roomID] = [socket.id];
-    }
-    const otherUser = rooms[roomID].find((id) => id !== socket.id);
-    if (otherUser) {
-      socket.emit("otherUser", otherUser);
-      socket.to(otherUser).emit("userJoined", socket.id);
+      const initiator = socket.id;
+      rooms[room] = [initiator];
+      console.log(`>>> Initiator-${initiator} created a new room`);
     }
   });
 
+  /* OFFER */
   socket.on("offer", (payload) => {
     io.to(payload.target).emit("offer", payload);
   });
 
+  /* ANSWER */
   socket.on("answer", (payload) => {
     io.to(payload.target).emit("answer", payload);
   });
 
+  /* ICECANDIDATE */
   socket.on("iceCandidate", (incoming) => {
     io.to(incoming.target).emit("iceCandidate", incoming.candidate);
   });
 });
 
+/* HANDLING PRODUCTION ENVIRORMENT */
 if (process.env.PROD) {
   app.use(express.static(path.join(__dirname, "./client/build")));
   app.get("*", (req, res) => {

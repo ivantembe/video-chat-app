@@ -3,14 +3,12 @@ import { BrowserRouter, Route, Switch } from "react-router-dom";
 import CreateRoom from "./components/CreateRoom";
 import Room from "./components/Room";
 
-import "rsuite/dist/styles/rsuite-default.css";
-
 function App() {
   return (
     <BrowserRouter>
       <Switch>
         <Route exact path="/" component={CreateRoom} />
-        <Route path="/room/:roomID" component={Room} />
+        <Route path="/room/:roomId" component={Room} />
       </Switch>
     </BrowserRouter>
   );

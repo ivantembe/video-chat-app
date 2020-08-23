@@ -1,18 +1,17 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import io from "socket.io-client";
-import "./styles.css";
 
 function Room(props) {
   const localVideo = useRef();
   const remoteVideo = useRef();
-  const peerConnectionRef = useRef();
+  const peerRef = useRef();
+  const peerConnection = useRef();
   const socketRef = useRef();
-  const otherUser = useRef();
-  const userStream = useRef();
-  const [videoWindowSize, setVideWindowSize] = useState("local-video");
-  const [remoteVideoWindow, setRemoteVideoWindow] = useState("");
+  const localStream = useRef();
+  const remoteStream = useRef();
 
   useEffect(() => {
+    /* Handling Browser compatibility, Local device access & add Stream  */
     navigator.getUserMedia =
       navigator.getUserMedia ||
       navigator.webkitGetUserMedia ||
@@ -22,37 +21,49 @@ function Room(props) {
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
         localVideo.current.srcObject = stream;
-        userStream.current = stream;
-        console.log("--> Local video stream:", stream);
+        console.log(`>>> Stream ${stream.id} added to localVideo`);
 
+        localStream.current = stream;
+        console.log(`>>> Stream assigned to localStream (local stream)`);
+
+        /* Connecting SOCKETIO client<->server */
         socketRef.current = io();
-        socketRef.current.emit("joinRoom", props.match.params.roomID);
 
-        socketRef.current.on("otherUser", (userId) => {
-          handleCall(userId);
-          otherUser.current = userId;
-        });
+        /* CREATE OR JOIN room */
+        const room = props.match.params.roomId;
+        if (room) {
+          socketRef.current.emit("createOrJoinRoom", room);
 
-        socketRef.current.on("otherUserJoined", (userId) => {
-          otherUser.current = userId;
-        });
+          socketRef.current.on("userJoinedRoom", (joinerId) => {
+            console.log(`>>> User-${joinerId} just joined the chat`);
+            handleCall(joinerId);
+            remoteStream.current = joinerId;
+          });
 
+          socketRef.current.on("fullRoomMessage", (message) => {
+            console.log(`>>> We are sorry, the room is Full`);
+          });
+        } else {
+          console.log(`>>> Some ERROR occured while generating room ID!!`);
+        }
+
+        /* OFFER, ANSWER & ICECANDIDATE LISTNERS */
         socketRef.current.on("offer", handleRecieveCall);
         socketRef.current.on("answer", handleAnswer);
         socketRef.current.on("iceCandidate", handleNewICECandidateData);
       });
-  }, []);
+  });
 
-  const handleCall = (userId) => {
-    peerConnectionRef.current = handleCreatePeerConnection(userId);
-    userStream.current
+  /* HANDLING CALL */
+  const handleCall = (joinerId) => {
+    peerRef.current = handleCreatePeerConnection(joinerId);
+    localStream.current
       .getTracks()
-      .forEach((track) =>
-        peerConnectionRef.current.addTrack(track, userStream.current)
-      );
+      .forEach((track) => peerRef.current.addTrack(track, localStream.current));
   };
 
-  const handleCreatePeerConnection = (userId) => {
+  /* HANDLING PEERCONNECTION */
+  const handleCreatePeerConnection = (joinerId) => {
     const iceConfiguration = {
       iceServers: [
         {
@@ -63,24 +74,25 @@ function Room(props) {
       ],
     };
 
-    const peerConnection = new RTCPeerConnection(iceConfiguration);
-    peerConnection.onicecandidate = handleOnIceCandidate;
-    peerConnection.ontrack = handleOnTrack;
-    peerConnection.onnegotiationneeded = () =>
-      handleOnNegotiationNeeded(userId);
+    peerConnection.current = new RTCPeerConnection(iceConfiguration);
+    peerConnection.current.onicecandidate = handleOnIceCandidate;
+    peerConnection.current.ontrack = handleOnTrack;
+    peerConnection.current.onnegotiationneeded = () =>
+      handleOnNegotiationNeeded(joinerId);
 
-    return peerConnection;
+    return peerConnection.current;
   };
 
-  const handleOnNegotiationNeeded = (userId) => {
-    peerConnectionRef.current.createOffer().then((offer) => {
-      return peerConnectionRef.current
+  /* HANDLING ONNEGOCIATIONNEEDED & EMMIT OFFER */
+  const handleOnNegotiationNeeded = (joinerId) => {
+    peerRef.current.createOffer().then((offer) => {
+      return peerRef.current
         .setLocalDescription(offer)
         .then(() => {
           const payload = {
-            target: userId,
+            target: joinerId,
             caller: socketRef.current.id,
-            sdp: peerConnectionRef.current.localDescription,
+            sdp: peerRef.current.localDescription,
           };
           socketRef.current.emit("offer", payload);
         })
@@ -88,82 +100,92 @@ function Room(props) {
     });
   };
 
+  /* HANDLING RECIEVECALL & EMMIT ANSWER */
   const handleRecieveCall = (incomingCall) => {
-    peerConnectionRef.current = handleCreatePeerConnection();
+    peerRef.current = handleCreatePeerConnection();
     const desc = new RTCSessionDescription(incomingCall.sdp);
-    peerConnectionRef.current
+    peerRef.current
       .setRemoteDescription(desc)
       .then(() => {
-        userStream.current
+        localStream.current
           .getTracks()
           .forEach((track) =>
-            peerConnectionRef.current.addTrack(track, userStream.current)
+            peerRef.current.addTrack(track, localStream.current)
           );
       })
       .then(() => {
-        return peerConnectionRef.current.createAnswer();
+        return peerRef.current.createAnswer();
       })
       .then((answer) => {
-        return peerConnectionRef.current.setLocalDescription(answer);
+        return peerRef.current.setLocalDescription(answer);
       })
       .then(() => {
         const payload = {
           target: incomingCall.caller,
           caller: socketRef.current.id,
-          sdp: peerConnectionRef.current.localDescription,
+          sdp: peerRef.current.localDescription,
         };
         socketRef.current.emit("answer", payload);
       });
   };
 
+  /* HANDLING ANSWER */
   const handleAnswer = (data) => {
     const desc = new RTCSessionDescription(data.sdp);
-    peerConnectionRef.current
-      .setRemoteDescription(desc)
-      .catch((e) => console.log(e));
+    peerRef.current.setRemoteDescription(desc).catch((e) => console.log(e));
   };
 
+  /* HANDLING ONICECANDIDATE & EMMIT ICECANDIDATE */
   const handleOnIceCandidate = (e) => {
     if (e.candidate) {
       const payload = {
-        target: otherUser.current,
+        target: remoteStream.current,
         candidate: e.candidate,
       };
       socketRef.current.emit("iceCandidate", payload);
     }
   };
 
+  /* HANDLING NEWICECANDIDATE */
   const handleNewICECandidateData = (incomingObj) => {
     const candidate = new RTCIceCandidate(incomingObj);
-
-    peerConnectionRef.current
-      .addIceCandidate(candidate)
-      .catch((e) => console.log(e));
+    peerRef.current.addIceCandidate(candidate).catch((e) => console.log(e));
   };
 
+  /* HANDLING ONTRACK - ADDING REMOTESTRAM TO REMOTEVIDEO */
   const handleOnTrack = (e) => {
     remoteVideo.current.srcObject = e.streams[0];
-    setVideWindowSize("mini-video");
-    setRemoteVideoWindow("remote-video");
+  };
+
+  /* HANDLING ONLEAVE */
+  const handleOnLeave = () => {
+    remoteStream.current = null;
+    remoteVideo.current.srcObject = null;
+    peerConnection.current.close();
+    peerConnection.current.onicecandidate = null;
+    peerConnection.current.ontrack = null;
+
+    socketRef.current.emit("disconnecting", peerConnection.current);
+    // TODO
+    // 1. Finish onLeave(server) & Deploy (NO push to github)
+    // 2. Implement text-chat
+    // 3. Implement screen share
+    // 4. Implement group-call
   };
 
   return (
-    <div className="room-container">
-      <div className="videos-container">
-        {remoteVideoWindow === "" ? (
-          <span ref={remoteVideo} />
-        ) : (
-          <video className={remoteVideoWindow} autoPlay ref={remoteVideo} />
-        )}
-        <video className={videoWindowSize} autoPlay ref={localVideo} />
-      </div>
-
-      <div className="chat-container">
-        <div className="chat-header">
-          <b>Chat</b>
+    <div className="container">
+      <video className="local" ref={localVideo} autoPlay></video>
+      <video className="remote" ref={remoteVideo} autoPlay></video>
+      <button className="leave-chat-btn" onClick={handleOnLeave}>
+        Leave Room
+      </button>
+      <div>
+        <div className="messages">message</div>
+        <div>
+          <input type="text" id="message" name="message" />
+          <button>Send</button>
         </div>
-        <div className="chat-output"></div>
-        <div className="chat-input">start typing...</div>
       </div>
     </div>
   );

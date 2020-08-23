@@ -30,29 +30,49 @@ function Room(props) {
         socketRef.current = io();
 
         /* CREATE OR JOIN room */
-        const room = props.match.params.roomId;
-        if (room) {
-          socketRef.current.emit("createOrJoinRoom", room);
 
-          socketRef.current.on("userJoinedRoom", (joinerId) => {
-            console.log(`>>> User-${joinerId} just joined the chat`);
-            handleCall(joinerId);
-            remoteStream.current = joinerId;
-          });
+        //#####
+        socketRef.current.emit("joinRoom", props.match.params.roomID);
 
-          socketRef.current.on("fullRoomMessage", (message) => {
-            console.log(`>>> We are sorry, the room is Full`);
-          });
-        } else {
-          console.log(`>>> Some ERROR occured while generating room ID!!`);
-        }
+        socketRef.current.on("otherUser", (userID) => {
+          handleCall(userID);
+          remoteStream.current = userID;
+        });
+
+        socketRef.current.on("userJoined", (userID) => {
+          remoteStream.current = userID;
+          console.log(">>>> new user joinedd");
+        });
+        //#####
+
+        // const room = props.match.params.roomId;
+        // if (room) {
+        //   socketRef.current.emit("createOrJoinRoom", room);
+
+        //   socketRef.current.on("userJoinedRoom", (joinerId) => {
+        //     console.log(`>>> User-${joinerId} just joined the chat`);
+        //     // handleCall(joinerId);
+        //     // remoteStream.current = joinerId;
+        //   });
+
+        //   socketRef.current.on("otherUser", (socket) => {
+        //     handleCall(socket);
+        //     remoteStream.current = socket;
+        //   });
+
+        //   socketRef.current.on("fullRoomMessage", (message) => {
+        //     console.log(`>>> We are sorry, the room is Full`);
+        //   });
+        // } else {
+        //   console.log(`>>> Some ERROR occured while generating room ID!!`);
+        // }
 
         /* OFFER, ANSWER & ICECANDIDATE LISTNERS */
         socketRef.current.on("offer", handleRecieveCall);
         socketRef.current.on("answer", handleAnswer);
         socketRef.current.on("iceCandidate", handleNewICECandidateData);
       });
-  });
+  }, []);
 
   /* HANDLING CALL */
   const handleCall = (joinerId) => {
@@ -155,17 +175,18 @@ function Room(props) {
   /* HANDLING ONTRACK - ADDING REMOTESTRAM TO REMOTEVIDEO */
   const handleOnTrack = (e) => {
     remoteVideo.current.srcObject = e.streams[0];
+    // console.log(">>> Remote Stream", e.streams[0]);
+    // console.log(">>> Local Stream", e.streams[0]);
   };
 
   /* HANDLING ONLEAVE */
   const handleOnLeave = () => {
-    remoteStream.current = null;
-    remoteVideo.current.srcObject = null;
-    peerConnection.current.close();
-    peerConnection.current.onicecandidate = null;
-    peerConnection.current.ontrack = null;
-
-    socketRef.current.emit("disconnecting", peerConnection.current);
+    // remoteStream.current = null;
+    // remoteVideo.current.srcObject = null;
+    // peerConnection.current.close();
+    // peerConnection.current.onicecandidate = null;
+    // peerConnection.current.ontrack = null;
+    // socketRef.current.emit("disconnecting", peerConnection.current);
     // TODO
     // 1. Finish onLeave(server) & Deploy (NO push to github)
     // 2. Implement text-chat

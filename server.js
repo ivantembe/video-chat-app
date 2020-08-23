@@ -12,31 +12,46 @@ const rooms = {};
 io.on("connection", (socket) => {
   console.log(`>>> New connection`);
 
-  socket.on("disconnecting", (message) => {
-    console.log(`>>> User ${message}`);
-    console.log(`>>> Disconnect message: ${message}`);
-  });
+  // socket.on("disconnecting", (message) => {
+  //   console.log(`>>> User ${message}`);
+  //   console.log(`>>> Disconnect message: ${message}`);
+  // });
 
   /* CREATE OR JOIN ROOM */
-  socket.on("createOrJoinRoom", (room) => {
-    if (rooms[room]) {
-      const usersInRoom = rooms[room].length;
-      const joiner = socket.id;
-
-      if (usersInRoom === 1) {
-        rooms[room].push(joiner);
-        console.log(`>>> Joiner-${joiner} just joined room`);
-        socket.broadcast.emit("userJoinedRoom", joiner);
-      } else {
-        socket.emit("fullRoomMessage", joiner);
-        console.log(`>>> Room is already full!`);
-      }
+  socket.on("joinRoom", (roomID) => {
+    if (rooms[roomID]) {
+      rooms[roomID].push(socket.id);
     } else {
-      const initiator = socket.id;
-      rooms[room] = [initiator];
-      console.log(`>>> Initiator-${initiator} created a new room`);
+      rooms[roomID] = [socket.id];
+    }
+    const otherUser = rooms[roomID].find((id) => id !== socket.id);
+    if (otherUser) {
+      socket.emit("otherUser", otherUser);
+      socket.to(otherUser).emit("userJoined", socket.id);
     }
   });
+  // socket.on("createOrJoinRoom", (room) => {
+  //   if (rooms[room]) {
+  //     const usersInRoom = rooms[room].length;
+  //     const joiner = socket.id;
+
+  //     if (usersInRoom === 1) {
+  //       rooms[room].push(joiner);
+  //       console.log(`>>> Joiner-${joiner} just joined room`);
+  //       socket.emit("otherUser", socket);
+  //       socket.broadcast.emit("userJoinedRoom", joiner);
+  //     } else {
+  //       socket.emit("fullRoomMessage", joiner);
+  //       console.log(`>>> Room is already full!`);
+  //     }
+  //   } else {
+  //     const initiator = [socket.id];
+  //     rooms[room] = initiator;
+  //     console.log(`>>> Initiator-${initiator} created a new room`);
+  //   }
+
+  //   const otherUser = rooms[room].find((id) => id !== socket.id);
+  // });
 
   /* OFFER */
   socket.on("offer", (payload) => {

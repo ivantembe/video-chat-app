@@ -10,6 +10,11 @@ function Room(props) {
   const localStream = useRef();
   const remoteStream = useRef();
 
+  const hostname = window.location.hostname;
+  if (!hostname) {
+    hostname = "localhost";
+  }
+
   useEffect(() => {
     /* Handling Browser compatibility, Local device access & add Stream  */
     navigator.getUserMedia =
@@ -87,9 +92,9 @@ function Room(props) {
     const iceConfiguration = {
       iceServers: [
         {
-          urls: "stun:stunserver.example.org",
+          urls: `turn:${hostname}`,
           username: "webrtc",
-          credential: "turnpassword",
+          credential: "turnserver",
         },
       ],
     };

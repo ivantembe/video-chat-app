@@ -32,40 +32,40 @@ function Room(props) {
         /* CREATE OR JOIN room */
 
         //##############
-        socketRef.current.emit("joinRoom", props.match.params.roomID);
+        // socketRef.current.emit("joinRoom", props.match.params.roomID);
 
-        socketRef.current.on("otherUser", (userID) => {
-          handleCall(userID);
-          remoteStream.current = userID;
-        });
+        // socketRef.current.on("otherUser", (userID) => {
+        //   handleCall(userID);
+        //   remoteStream.current = userID;
+        // });
 
-        socketRef.current.on("userJoined", (userID) => {
-          remoteStream.current = userID;
-          console.log(">>>> new user joinedd");
-        });
-        //#####
+        // socketRef.current.on("userJoined", (userID) => {
+        //   remoteStream.current = userID;
+        //   console.log(">>>> new user joinedd");
+        // });
+        //##############
 
-        // const room = props.match.params.roomId;
-        // if (room) {
-        //   socketRef.current.emit("createOrJoinRoom", room);
+        const room = props.match.params.roomId;
+        if (room) {
+          socketRef.current.emit("createOrJoinRoom", room);
 
-        //   socketRef.current.on("userJoinedRoom", (joinerId) => {
-        //     console.log(`>>> User-${joinerId} just joined the chat`);
-        //     // handleCall(joinerId);
-        //     // remoteStream.current = joinerId;
-        //   });
+          socketRef.current.on("userJoinedRoom", (joinerId) => {
+            console.log(`>>> User-${joinerId} just joined the chat`);
+            handleCall(joinerId);
+            remoteStream.current = joinerId;
+          });
 
-        //   socketRef.current.on("otherUser", (socket) => {
-        //     handleCall(socket);
-        //     remoteStream.current = socket;
-        //   });
+          // socketRef.current.on("otherUser", (socket) => {
+          //   handleCall(socket);
+          //   remoteStream.current = socket;
+          // });
 
-        //   socketRef.current.on("fullRoomMessage", (message) => {
-        //     console.log(`>>> We are sorry, the room is Full`);
-        //   });
-        // } else {
-        //   console.log(`>>> Some ERROR occured while generating room ID!!`);
-        // }
+          socketRef.current.on("fullRoomMessage", (message) => {
+            console.log(`>>> We are sorry, the room is Full`);
+          });
+        } else {
+          console.log(`>>> Some ERROR occured while generating room ID!!`);
+        }
 
         /* OFFER, ANSWER & ICECANDIDATE LISTNERS */
         socketRef.current.on("offer", handleRecieveCall);

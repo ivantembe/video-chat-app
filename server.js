@@ -52,8 +52,6 @@ io.on("connection", (socket) => {
       rooms[room] = initiator;
       console.log(`>>> Initiator-${initiator} created a new room`);
     }
-
-    // const otherUser = rooms[room].find((id) => id !== socket.id);
   });
 
   /* OFFER */

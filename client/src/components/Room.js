@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 
 function Room(props) {
@@ -10,10 +10,11 @@ function Room(props) {
   const localStream = useRef();
   const remoteStream = useRef();
 
-  const hostname = window.location.hostname;
-  if (!hostname) {
-    hostname = "localhost";
-  }
+  const [allMessages, setAllMessages] = useState();
+  const [inputValue, setInputValue] = useState("");
+  // const dataChannel = useRef();
+
+  const senders = useRef([]);
 
   useEffect(() => {
     /* Handling Browser compatibility, Local device access & add Stream  */
@@ -32,24 +33,9 @@ function Room(props) {
         console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io();
+        socketRef.current = io("http://localhost:8081");
 
         /* CREATE OR JOIN room */
-
-        //##############
-        // socketRef.current.emit("joinRoom", props.match.params.roomID);
-
-        // socketRef.current.on("otherUser", (userID) => {
-        //   handleCall(userID);
-        //   remoteStream.current = userID;
-        // });
-
-        // socketRef.current.on("userJoined", (userID) => {
-        //   remoteStream.current = userID;
-        //   console.log(">>>> new user joinedd");
-        // });
-        //##############
-
         const room = props.match.params.roomId;
         if (room) {
           socketRef.current.emit("createOrJoinRoom", room);
@@ -59,11 +45,6 @@ function Room(props) {
             handleCall(joinerId);
             remoteStream.current = joinerId;
           });
-
-          // socketRef.current.on("otherUser", (socket) => {
-          //   handleCall(socket);
-          //   remoteStream.current = socket;
-          // });
 
           socketRef.current.on("fullRoomMessage", (message) => {
             console.log(`>>> We are sorry, the room is Full`);
@@ -84,7 +65,11 @@ function Room(props) {
     peerRef.current = handleCreatePeerConnection(joinerId);
     localStream.current
       .getTracks()
-      .forEach((track) => peerRef.current.addTrack(track, localStream.current));
+      .forEach((track) =>
+        senders.current.push(
+          peerRef.current.addTrack(track, localStream.current)
+        )
+      );
   };
 
   /* HANDLING PEERCONNECTION */
@@ -92,14 +77,15 @@ function Room(props) {
     const iceConfiguration = {
       iceServers: [
         {
-          urls: `turn:${hostname}`,
-          username: "webrtc",
-          credential: "turnserver",
+          urls: "stun:stun.stunprotocol.org",
+        },
+        {
+          urls: "turn:numb.viagenie.ca",
+          credential: "muazkh",
+          username: "webrtc@live.com",
         },
       ],
     };
-
-    console.log(`>>> HOSTNAME: ${hostname}`);
 
     peerConnection.current = new RTCPeerConnection(iceConfiguration);
     peerConnection.current.onicecandidate = handleOnIceCandidate;
@@ -126,6 +112,18 @@ function Room(props) {
         .catch((e) => console.log(e));
     });
   };
+
+  /* DATACHANNEL */
+  //  const dataChannel = peerConnection.current.createDataChannel({
+  //   reliable: true,
+  // });
+  // peerConnection.current.ondatachannel = dataChannel;
+  // dataChannel.onopen = () => console.log(">>> Channel is ready!");
+  // dataChannel.onclose = () => console.log(">>> Channel is closed!");
+  // dataChannel.onmessage = (ev) => {
+  //   const message = ev.data;
+  //   setAllMessages(message);
+  // };
 
   /* HANDLING RECIEVECALL & EMMIT ANSWER */
   const handleRecieveCall = (incomingCall) => {
@@ -182,8 +180,6 @@ function Room(props) {
   /* HANDLING ONTRACK - ADDING REMOTESTRAM TO REMOTEVIDEO */
   const handleOnTrack = (e) => {
     remoteVideo.current.srcObject = e.streams[0];
-    // console.log(">>> Remote Stream", e.streams[0]);
-    // console.log(">>> Local Stream", e.streams[0]);
   };
 
   /* HANDLING ONLEAVE */
@@ -201,6 +197,31 @@ function Room(props) {
     // 4. Implement group-call
   };
 
+  const handleChange = (ev) => {
+    setInputValue(ev.target.value);
+  };
+
+  const handleSendMessage = (ev) => {
+    ev.preventDefault();
+    const message = inputValue;
+    // dataChannel.current.send(message);
+  };
+
+  /* HANDLING SCREENSHARING */
+  const handleScreenShare = () => {
+    navigator.mediaDevices.getDisplayMedia({ cursor: true }).then((stream) => {
+      const screenTrack = stream.getTracks()[0];
+      senders.current
+        .find((sender) => sender.track.kind === "video")
+        .replaceTrack(screenTrack);
+      screenTrack.onended = function () {
+        senders.current
+          .find((sender) => sender.track.kind === "video")
+          .replaceTrack(localStream.current.getTracks()[1]);
+      };
+    });
+  };
+
   return (
     <div className="container">
       <video className="local" ref={localVideo} autoPlay></video>
@@ -208,11 +229,12 @@ function Room(props) {
       <button className="leave-chat-btn" onClick={handleOnLeave}>
         Leave Room
       </button>
+      <button onClick={handleScreenShare}>Share screen</button>
       <div>
-        <div className="messages">message</div>
+        <div id="all-messages">{allMessages}</div>
         <div>
-          <input type="text" id="message" name="message" />
-          <button>Send</button>
+          <input type="text" value={inputValue} onChange={handleChange} />
+          <button onClick={handleSendMessage}>Send</button>
         </div>
       </div>
     </div>

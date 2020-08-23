@@ -36,7 +36,7 @@ video {
   top: 460px;
 }
 
-.messages {
+#all-messages {
   background-color: #4242;
   width: 400px;
   height: 150px;

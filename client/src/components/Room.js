@@ -87,7 +87,7 @@ function Room(props) {
     const iceConfiguration = {
       iceServers: [
         {
-          urls: ["turns:turnserver.example.org", "turn:turnserver.example.org"],
+          urls: "stun:stunserver.example.org",
           username: "webrtc",
           credential: "turnpassword",
         },

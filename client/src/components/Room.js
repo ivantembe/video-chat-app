@@ -31,7 +31,7 @@ function Room(props) {
 
         /* CREATE OR JOIN room */
 
-        //#####
+        //##############
         socketRef.current.emit("joinRoom", props.match.params.roomID);
 
         socketRef.current.on("otherUser", (userID) => {

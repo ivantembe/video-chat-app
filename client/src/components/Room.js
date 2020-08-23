@@ -99,6 +99,8 @@ function Room(props) {
       ],
     };
 
+    console.log(`>>> HOSTNAME: ${hostname}`);
+
     peerConnection.current = new RTCPeerConnection(iceConfiguration);
     peerConnection.current.onicecandidate = handleOnIceCandidate;
     peerConnection.current.ontrack = handleOnTrack;

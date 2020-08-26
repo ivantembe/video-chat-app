@@ -38,7 +38,7 @@ function Room(props) {
         console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io();
+        socketRef.current = io(); // "http://localhost:8081"
 
         socketRef.current.on("token", (token) => {
           console.log(`>>> Twilio token: ${JSON.stringify(token.iceServers)}`);

@@ -2,37 +2,41 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const path = require("path");
+
 const app = express();
 const server = http.createServer(app);
 const socket = require("socket.io");
 const io = socket(server);
+
+/* TWILIO CONFIGURATION */
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilio = require("twilio")(accountSid, authToken);
+// twilio.tokens.create(function (err, response) {
+//   if (err) {
+//     console.log(err);
+//   } else {
+//     console.log(`>>> Twilio token: ${response}`);
+//   }
+// });
 
 const rooms = {};
 
 io.on("connection", (socket) => {
   console.log(`>>> New connection`);
 
-  // socket.on("disconnecting", (message) => {
-  //   console.log(`>>> User ${message}`);
-  //   console.log(`>>> Disconnect message: ${message}`);
-  // });
+  /* TWILIO TOKEN GENERATION */
+  socket.on("token", () => {
+    twilio.tokens
+      .create()
+      .then((token) => {
+        socket.emit("token", token);
+        console.log(`>>> Twilio token: ${token.username}`);
+      })
+      .catch((err) => console.log(err));
+  });
 
   /* CREATE OR JOIN ROOM */
-  //##########################
-  // socket.on("joinRoom", (roomID) => {
-  //   if (rooms[roomID]) {
-  //     rooms[roomID].push(socket.id);
-  //   } else {
-  //     rooms[roomID] = [socket.id];
-  //   }
-  //   const otherUser = rooms[roomID].find((id) => id !== socket.id);
-  //   if (otherUser) {
-  //     socket.emit("otherUser", otherUser);
-  //     socket.to(otherUser).emit("userJoined", socket.id);
-  //   }
-  // });
-  //######################
-
   socket.on("createOrJoinRoom", (room) => {
     if (rooms[room]) {
       const usersInRoom = rooms[room].length;

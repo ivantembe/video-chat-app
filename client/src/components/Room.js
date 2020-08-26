@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
+import { v4 as uuidv4 } from "uuid";
 
 function Room(props) {
   const localVideo = useRef();
@@ -10,10 +11,12 @@ function Room(props) {
   const localStream = useRef();
   const remoteStream = useRef();
 
-  const [allMessages, setAllMessages] = useState();
+  /* DATACHANNEL */
+  const sendChannel = useRef();
+  const [allMessages, setAllMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  // const dataChannel = useRef();
 
+  /* SCREENSHARE */
   const senders = useRef([]);
 
   useEffect(() => {
@@ -34,6 +37,10 @@ function Room(props) {
 
         /* Connecting SOCKETIO client<->server */
         socketRef.current = io();
+
+        // socketRef.ref.on("token", (token) => {
+        //   console.log(`>>> Twilio token: ${token.username}`);
+        // });
 
         /* CREATE OR JOIN room */
         const room = props.match.params.roomId;
@@ -63,6 +70,12 @@ function Room(props) {
   /* HANDLING CALL */
   const handleCall = (joinerId) => {
     peerRef.current = handleCreatePeerConnection(joinerId);
+
+    /* CREATE DATACHANNEL */
+    sendChannel.current = peerRef.current.createDataChannel("sendChannel");
+    console.log(">>> DataChannel is ready!");
+    sendChannel.current.onmessage = handleRecieveMessage;
+
     localStream.current
       .getTracks()
       .forEach((track) =>
@@ -72,18 +85,26 @@ function Room(props) {
       );
   };
 
+  /* HANDLING RECIEVEMESSAGES */
+  const handleRecieveMessage = (ev) => {
+    setAllMessages((messages) => [
+      ...messages,
+      { id: uuidv4(), sender: "remote", value: ev.data },
+    ]);
+  };
+
   /* HANDLING PEERCONNECTION */
   const handleCreatePeerConnection = (joinerId) => {
     const iceConfiguration = {
       iceServers: [
         {
-          urls: "stun:stun.stunprotocol.org",
+          url: "stun:global.stun.twilio.com:3478?transport=udp",
         },
-        {
-          urls: "turn:numb.viagenie.ca",
-          credential: "muazkh",
-          username: "webrtc@live.com",
-        },
+        // {
+        //   urls: "turn:numb.viagenie.ca",
+        //   credential: "muazkh",
+        //   username: "webrtc@live.com",
+        // },
       ],
     };
 
@@ -113,21 +134,16 @@ function Room(props) {
     });
   };
 
-  /* DATACHANNEL */
-  //  const dataChannel = peerConnection.current.createDataChannel({
-  //   reliable: true,
-  // });
-  // peerConnection.current.ondatachannel = dataChannel;
-  // dataChannel.onopen = () => console.log(">>> Channel is ready!");
-  // dataChannel.onclose = () => console.log(">>> Channel is closed!");
-  // dataChannel.onmessage = (ev) => {
-  //   const message = ev.data;
-  //   setAllMessages(message);
-  // };
-
   /* HANDLING RECIEVECALL & EMMIT ANSWER */
   const handleRecieveCall = (incomingCall) => {
     peerRef.current = handleCreatePeerConnection();
+
+    /* CREATE DATACHANNEL */
+    peerRef.current.ondatachannel = (ev) => {
+      sendChannel.current = ev.channel;
+      sendChannel.current.onmessage = handleRecieveMessage;
+    };
+
     const desc = new RTCSessionDescription(incomingCall.sdp);
     peerRef.current
       .setRemoteDescription(desc)
@@ -135,7 +151,9 @@ function Room(props) {
         localStream.current
           .getTracks()
           .forEach((track) =>
-            peerRef.current.addTrack(track, localStream.current)
+            senders.current.push(
+              peerRef.current.addTrack(track, localStream.current)
+            )
           );
       })
       .then(() => {
@@ -203,18 +221,27 @@ function Room(props) {
 
   const handleSendMessage = (ev) => {
     ev.preventDefault();
-    const message = inputValue;
-    // dataChannel.current.send(message);
+    sendChannel.current.send(inputValue);
+    setAllMessages((messages) => [
+      ...messages,
+      { id: uuidv4(), sender: "local", value: inputValue },
+    ]);
+    console.log(allMessages);
+    setInputValue("");
   };
 
   /* HANDLING SCREENSHARING */
   const handleScreenShare = () => {
     navigator.mediaDevices.getDisplayMedia({ cursor: true }).then((stream) => {
       const screenTrack = stream.getTracks()[0];
+      console.log("screen track:", screenTrack);
+      console.log(">>> Senders:", senders.current);
+
       senders.current
         .find((sender) => sender.track.kind === "video")
         .replaceTrack(screenTrack);
-      screenTrack.onended = function () {
+
+      screenTrack.onended = () => {
         senders.current
           .find((sender) => sender.track.kind === "video")
           .replaceTrack(localStream.current.getTracks()[1]);
@@ -231,7 +258,14 @@ function Room(props) {
       </button>
       <button onClick={handleScreenShare}>Share screen</button>
       <div>
-        <div id="all-messages">{allMessages}</div>
+        <div id="all-messages">
+          {allMessages.map((message) => (
+            <div key={message.id}>
+              <span>{message.sender}</span>
+              <p>{message.value}</p>
+            </div>
+          ))}
+        </div>
         <div>
           <input type="text" value={inputValue} onChange={handleChange} />
           <button onClick={handleSendMessage}>Send</button>

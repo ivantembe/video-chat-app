@@ -39,5 +39,5 @@ video {
 #all-messages {
   background-color: #4242;
   width: 400px;
-  height: 150px;
+  height: auto;
 }

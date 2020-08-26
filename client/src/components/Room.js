@@ -38,11 +38,11 @@ function Room(props) {
         console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io(); // "http://localhost:8081"
+        socketRef.current = io("http://localhost:8081"); // "http://localhost:8081"
 
         socketRef.current.on("token", (token) => {
-          console.log(`>>> Twilio token: ${JSON.stringify(token.iceServers)}`);
-          iceServersTwilio.current = token;
+          // console.log(`>>> Twilio token: ${JSON.stringify(token.iceServers)}`);
+          iceServersTwilio.current = token.iceServers;
         });
         socketRef.current.emit("token");
 
@@ -99,6 +99,7 @@ function Room(props) {
 
   /* HANDLING PEERCONNECTION */
   const handleCreatePeerConnection = (joinerId) => {
+    console.log(iceServersTwilio.current);
     const iceConfiguration = {
       iceServers: iceServersTwilio.current,
     };

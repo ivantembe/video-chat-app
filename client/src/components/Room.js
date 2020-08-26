@@ -19,6 +19,8 @@ function Room(props) {
   /* SCREENSHARE */
   const senders = useRef([]);
 
+  const iceServersTwilio = useRef();
+
   useEffect(() => {
     /* Handling Browser compatibility, Local device access & add Stream  */
     navigator.getUserMedia =
@@ -38,9 +40,11 @@ function Room(props) {
         /* Connecting SOCKETIO client<->server */
         socketRef.current = io();
 
-        // socketRef.ref.on("token", (token) => {
-        //   console.log(`>>> Twilio token: ${token.username}`);
-        // });
+        socketRef.current.on("token", (token) => {
+          console.log(`>>> Twilio token: ${JSON.stringify(token.iceServers)}`);
+          iceServersTwilio.current = token;
+        });
+        socketRef.current.emit("token");
 
         /* CREATE OR JOIN room */
         const room = props.match.params.roomId;
@@ -96,16 +100,7 @@ function Room(props) {
   /* HANDLING PEERCONNECTION */
   const handleCreatePeerConnection = (joinerId) => {
     const iceConfiguration = {
-      iceServers: [
-        {
-          url: "stun:global.stun.twilio.com:3478?transport=udp",
-        },
-        // {
-        //   urls: "turn:numb.viagenie.ca",
-        //   credential: "muazkh",
-        //   username: "webrtc@live.com",
-        // },
-      ],
+      iceServers: iceServersTwilio.current,
     };
 
     peerConnection.current = new RTCPeerConnection(iceConfiguration);

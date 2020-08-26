@@ -12,13 +12,6 @@ const io = socket(server);
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilio = require("twilio")(accountSid, authToken);
-// twilio.tokens.create(function (err, response) {
-//   if (err) {
-//     console.log(err);
-//   } else {
-//     console.log(`>>> Twilio token: ${response}`);
-//   }
-// });
 
 const rooms = {};
 

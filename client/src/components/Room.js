@@ -32,23 +32,14 @@ function Room(props) {
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
         localVideo.current.srcObject = stream;
+        localVideo.current.volume = 0;
         console.log(`>>> Stream ${stream.id} added to localVideo`);
 
         localStream.current = stream;
         console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io(); // "http://localhost:8081"
-
-        socketRef.current.on("token", (token) => {
-          iceServersTwilio.current = token.iceServers;
-          // console.log(
-          //   `>>> IceServers from twilio: ${JSON.stringify(
-          //     iceServersTwilio.current
-          //   )}`
-          // );
-        });
-        socketRef.current.emit("token");
+        socketRef.current = io("http://localhost:8081"); // "http://localhost:8081"
 
         /* CREATE OR JOIN room */
         const room = props.match.params.roomId;
@@ -67,6 +58,12 @@ function Room(props) {
         } else {
           console.log(`>>> Some ERROR occured while generating room ID!!`);
         }
+
+        /* TWILIO ICESERVERS TOKEN */
+        socketRef.current.on("token", (token) => {
+          iceServersTwilio.current = token.iceServers;
+        });
+        socketRef.current.emit("token");
 
         /* OFFER, ANSWER & ICECANDIDATE LISTNERS */
         socketRef.current.on("offer", handleRecieveCall);

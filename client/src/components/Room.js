@@ -41,8 +41,12 @@ function Room(props) {
         socketRef.current = io(); // "http://localhost:8081"
 
         socketRef.current.on("token", (token) => {
-          // console.log(`>>> Twilio token: ${JSON.stringify(token.iceServers)}`);
           iceServersTwilio.current = token.iceServers;
+          // console.log(
+          //   `>>> IceServers from twilio: ${JSON.stringify(
+          //     iceServersTwilio.current
+          //   )}`
+          // );
         });
         socketRef.current.emit("token");
 
@@ -99,7 +103,6 @@ function Room(props) {
 
   /* HANDLING PEERCONNECTION */
   const handleCreatePeerConnection = (joinerId) => {
-    console.log(iceServersTwilio.current);
     const iceConfiguration = {
       iceServers: iceServersTwilio.current,
     };
@@ -188,7 +191,9 @@ function Room(props) {
   /* HANDLING NEWICECANDIDATE */
   const handleNewICECandidateData = (incomingObj) => {
     const candidate = new RTCIceCandidate(incomingObj);
-    peerRef.current.addIceCandidate(candidate).catch((e) => console.log(e));
+    peerRef.current
+      .addIceCandidate(candidate.toJSON())
+      .catch((e) => console.log(e));
   };
 
   /* HANDLING ONTRACK - ADDING REMOTESTRAM TO REMOTEVIDEO */

@@ -64,8 +64,12 @@ io.on("connection", (socket) => {
   /* ICECANDIDATE */
   socket.on("iceCandidate", (payload) => {
     console.log(`>>> IceCandidate: ${JSON.stringify(payload)}`);
-    // io.to(payload.target).emit("iceCandidate", payload.candidate);
     socket.broadcast.emit("iceCandidate", payload.candidate);
+  });
+
+  /* ENDCALL */
+  socket.on("hangingUp", (room) => {
+    socket.broadcast.emit("hangUpRemote");
   });
 });
 

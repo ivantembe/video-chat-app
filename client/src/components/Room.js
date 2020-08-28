@@ -10,6 +10,7 @@ function Room(props) {
   const socketRef = useRef();
   const localStream = useRef();
   const remoteStream = useRef();
+  const room = useRef();
 
   /* DATACHANNEL */
   const sendChannel = useRef();
@@ -39,12 +40,12 @@ function Room(props) {
         console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io(); // "http://localhost:8081"
+        socketRef.current = io("http://localhost:8081"); // "http://localhost:8081"
 
         /* CREATE OR JOIN room */
-        const room = props.match.params.roomId;
-        if (room) {
-          socketRef.current.emit("createOrJoinRoom", room);
+        room.current = props.match.params.roomId;
+        if (room.current) {
+          socketRef.current.emit("createOrJoinRoom", room.current);
 
           socketRef.current.on("userJoinedRoom", (joinerId) => {
             console.log(`>>> User-${joinerId} just joined the chat`);
@@ -69,6 +70,8 @@ function Room(props) {
         socketRef.current.on("offer", handleRecieveCall);
         socketRef.current.on("answer", handleAnswer);
         socketRef.current.on("iceCandidate", handleNewICECandidateData);
+
+        socketRef.current.on("hangUpRemote", handleRemoteHangUp);
       });
   }, []);
 
@@ -198,21 +201,24 @@ function Room(props) {
     remoteVideo.current.srcObject = e.streams[0];
   };
 
-  /* HANDLING ONLEAVE */
-  const handleOnLeave = () => {
-    // remoteStream.current = null;
-    // remoteVideo.current.srcObject = null;
-    // peerConnection.current.close();
-    // peerConnection.current.onicecandidate = null;
-    // peerConnection.current.ontrack = null;
-    // socketRef.current.emit("disconnecting", peerConnection.current);
-    // TODO
-    // 1. Finish onLeave(server) & Deploy (NO push to github)
-    // 2. Implement text-chat
-    // 3. Implement screen share
-    // 4. Implement group-call
+  /* HANDLING HANGINGUP */
+  const handleHangUp = () => {
+    stop();
+    socketRef.current.emit("hangingUp", room.current);
   };
 
+  const handleRemoteHangUp = () => {
+    stop();
+    localVideo.current = null;
+  };
+
+  const stop = () => {
+    sendChannel.current && sendChannel.current.close();
+    peerConnection.current.close();
+    peerConnection.current = null;
+  };
+
+  /* ******** */
   const handleChange = (ev) => {
     setInputValue(ev.target.value);
   };
@@ -251,8 +257,8 @@ function Room(props) {
     <div className="container">
       <video className="local" ref={localVideo} autoPlay></video>
       <video className="remote" ref={remoteVideo} autoPlay></video>
-      <button className="leave-chat-btn" onClick={handleOnLeave}>
-        Leave Room
+      <button className="leave-chat-btn" onClick={handleHangUp}>
+        End call
       </button>
       <button onClick={handleScreenShare}>Share screen</button>
       <div>

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
+import moment from "moment";
 
 function Room(props) {
   const localVideo = useRef();
@@ -11,6 +12,9 @@ function Room(props) {
   const localStream = useRef();
   const remoteStream = useRef();
   const room = useRef();
+  const iceServersTwilio = useRef();
+  const [localVideoSize, setLocalVideoSize] = useState(false);
+  const [disabled, setDisabled] = useState(true);
 
   /* DATACHANNEL */
   const sendChannel = useRef();
@@ -20,8 +24,6 @@ function Room(props) {
   /* SCREENSHARE */
   const senders = useRef([]);
 
-  const iceServersTwilio = useRef();
-
   useEffect(() => {
     /* Handling Browser compatibility, Local device access & add Stream  */
     navigator.getUserMedia =
@@ -29,30 +31,32 @@ function Room(props) {
       navigator.webkitGetUserMedia ||
       navigator.mozGetUserMedia;
 
+    const video = {
+      width: { exact: 1280 },
+      height: { exact: 720 },
+    };
+
     navigator.mediaDevices
-      .getUserMedia({ audio: true, video: true })
+      .getUserMedia({ audio: true, video: video })
       .then((stream) => {
         localVideo.current.srcObject = stream;
         localVideo.current.volume = 0;
-        console.log(`>>> Stream ${stream.id} added to localVideo`);
-
         localStream.current = stream;
-        console.log(`>>> Stream assigned to localStream (local stream)`);
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io("http://localhost:8081"); // "http://localhost:8081"
+        socketRef.current = io("http://localhost:8081");
 
         /* CREATE OR JOIN room */
         room.current = props.match.params.roomId;
         if (room.current) {
           socketRef.current.emit("createOrJoinRoom", room.current);
-
           socketRef.current.on("userJoinedRoom", (joinerId) => {
             console.log(`>>> User-${joinerId} just joined the chat`);
             handleCall(joinerId);
             remoteStream.current = joinerId;
+            setLocalVideoSize(true);
+            setDisabled(false);
           });
-
           socketRef.current.on("fullRoomMessage", (message) => {
             console.log(`>>> We are sorry, the room is Full`);
           });
@@ -81,7 +85,6 @@ function Room(props) {
 
     /* CREATE DATACHANNEL */
     sendChannel.current = peerRef.current.createDataChannel("sendChannel");
-    console.log(">>> DataChannel is ready!");
     sendChannel.current.onmessage = handleRecieveMessage;
 
     localStream.current
@@ -97,7 +100,12 @@ function Room(props) {
   const handleRecieveMessage = (ev) => {
     setAllMessages((messages) => [
       ...messages,
-      { id: uuidv4(), sender: "remote", value: ev.data },
+      {
+        id: uuidv4(),
+        sender: "remote",
+        value: ev.data,
+        date: moment().format("ddd, h:mm A"),
+      },
     ]);
   };
 
@@ -168,6 +176,8 @@ function Room(props) {
           sdp: peerRef.current.localDescription,
         };
         socketRef.current.emit("answer", payload);
+        setLocalVideoSize(true);
+        setDisabled(false);
       });
   };
 
@@ -205,11 +215,15 @@ function Room(props) {
   const handleHangUp = () => {
     stop();
     socketRef.current.emit("hangingUp", room.current);
+    setLocalVideoSize(false);
+    setDisabled(true);
   };
 
   const handleRemoteHangUp = () => {
     stop();
     localVideo.current = null;
+    setLocalVideoSize(false);
+    setDisabled(true);
   };
 
   const stop = () => {
@@ -218,7 +232,7 @@ function Room(props) {
     peerConnection.current = null;
   };
 
-  /* ******** */
+  /* INPUT MESSAGE */
   const handleChange = (ev) => {
     setInputValue(ev.target.value);
   };
@@ -228,7 +242,12 @@ function Room(props) {
     sendChannel.current.send(inputValue);
     setAllMessages((messages) => [
       ...messages,
-      { id: uuidv4(), sender: "local", value: inputValue },
+      {
+        id: uuidv4(),
+        sender: "local",
+        value: inputValue,
+        date: moment().format("ddd, h:mm A"),
+      },
     ]);
     console.log(allMessages);
     setInputValue("");
@@ -238,9 +257,6 @@ function Room(props) {
   const handleScreenShare = () => {
     navigator.mediaDevices.getDisplayMedia({ cursor: true }).then((stream) => {
       const screenTrack = stream.getTracks()[0];
-      console.log("screen track:", screenTrack);
-      console.log(">>> Senders:", senders.current);
-
       senders.current
         .find((sender) => sender.track.kind === "video")
         .replaceTrack(screenTrack);
@@ -254,25 +270,77 @@ function Room(props) {
   };
 
   return (
-    <div className="container">
-      <video className="local" ref={localVideo} autoPlay></video>
-      <video className="remote" ref={remoteVideo} autoPlay></video>
-      <button className="leave-chat-btn" onClick={handleHangUp}>
-        End call
-      </button>
-      <button onClick={handleScreenShare}>Share screen</button>
-      <div>
-        <div id="all-messages">
-          {allMessages.map((message) => (
-            <div key={message.id}>
-              <span>{message.sender}</span>
-              <p>{message.value}</p>
-            </div>
-          ))}
+    <div className="section">
+      <div className="container">
+        <div className="streaming-container">
+          <h1 className="title">
+            <span className="header-1">Major Project - Demo</span>
+          </h1>
+          <video
+            className={localVideoSize ? "local" : "remote"}
+            ref={localVideo}
+            autoPlay
+          ></video>
+          <video
+            className={localVideoSize ? "remote" : "hidden"}
+            ref={remoteVideo}
+            autoPlay
+          ></video>
+          <div className="buttons-container">
+            <button
+              className="button screenshare"
+              onClick={handleScreenShare}
+              disabled={disabled}
+            >
+              Share screen
+            </button>
+            <button
+              className="button hangup"
+              onClick={handleHangUp}
+              disabled={disabled}
+            >
+              End call
+            </button>
+          </div>
         </div>
-        <div>
-          <input type="text" value={inputValue} onChange={handleChange} />
-          <button onClick={handleSendMessage}>Send</button>
+        <div className="chat-container">
+          <div className="title">
+            <span>Chat</span>
+          </div>
+          <div className="all-messages">
+            {allMessages.map((message) => (
+              <div className="single-message" key={message.id}>
+                <span
+                  className={
+                    message.sender === "local"
+                      ? "sender-local"
+                      : "sender-remote"
+                  }
+                >
+                  {message.sender === "local"
+                    ? "Your Message"
+                    : "Remote Message"}
+                </span>
+                <span className="date">{message.date}</span>
+                <p className="message-data">{message.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="input">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={handleChange}
+              disabled={disabled}
+            />
+            <button
+              className="button send-message"
+              onClick={handleSendMessage}
+              disabled={disabled}
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>

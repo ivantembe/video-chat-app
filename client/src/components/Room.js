@@ -47,7 +47,7 @@ function Room(props) {
         localStream.current = stream;
 
         /* Connecting SOCKETIO client<->server */
-        socketRef.current = io("http://localhost:8081");
+        socketRef.current = io();
 
         /* CREATE OR JOIN room */
         room.current = props.match.params.roomId;

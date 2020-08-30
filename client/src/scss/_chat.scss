@@ -1,0 +1,63 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  width: 25%;
+  border-left: 2px solid $grey-blue-light;
+  padding: 0.6rem;
+
+  &__title {
+    background-color: $grey-blue-light;
+    color: $white;
+    font-size: 1rem;
+    text-align: center;
+    padding: 1rem 0;
+  }
+
+  &__messages {
+    flex-grow: 1;
+    color: $white;
+    font-weight: 200;
+    padding: 1.5rem 0;
+    overflow: scroll;
+
+    .message {
+      padding: 0.4rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.9rem;
+
+      &__content {
+        margin: 0;
+      }
+
+      &__date {
+        font-size: 0.7rem;
+        margin-left: 1rem;
+        opacity: 0.7;
+      }
+
+      .sender--local,
+      .sender--remote {
+        font-weight: 500;
+      }
+
+      .sender--remote {
+        color: $yellow;
+      }
+      .sender--local {
+        color: $green;
+      }
+    }
+  }
+
+  .input--group {
+    display: flex;
+
+    input {
+      flex-grow: 1;
+      font-family: $base-font;
+      font-size: 1rem;
+      padding: 0.8rem 0.2rem;
+      background-color: $light-white;
+    }
+  }
+}

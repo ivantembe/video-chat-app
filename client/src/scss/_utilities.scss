@@ -1,0 +1,16 @@
+// Margin utilities
+$u-mr--6: 0.6rem;
+.mr-6 {
+  margin-right: $u-mr--6;
+}
+
+// Width
+$u-w--5: 5rem;
+.w-5 {
+  width: $u-w--5;
+}
+
+// Display
+.hidden {
+  display: none;
+}

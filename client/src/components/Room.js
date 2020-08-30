@@ -3,6 +3,9 @@ import io from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import moment from "moment";
 
+import Streaming from "./Streaming";
+import Chat from "./Chat";
+
 function Room(props) {
   const localVideo = useRef();
   const remoteVideo = useRef();
@@ -270,79 +273,22 @@ function Room(props) {
   };
 
   return (
-    <div className="section">
-      <div className="container">
-        <div className="streaming-container">
-          <h1 className="title">
-            <span className="header-1">Major Project - Demo</span>
-          </h1>
-          <video
-            className={localVideoSize ? "local" : "remote"}
-            ref={localVideo}
-            autoPlay
-          ></video>
-          <video
-            className={localVideoSize ? "remote" : "hidden"}
-            ref={remoteVideo}
-            autoPlay
-          ></video>
-          <div className="buttons-container">
-            <button
-              className="button screenshare"
-              onClick={handleScreenShare}
-              disabled={disabled}
-            >
-              Share screen
-            </button>
-            <button
-              className="button hangup"
-              onClick={handleHangUp}
-              disabled={disabled}
-            >
-              End call
-            </button>
-          </div>
-        </div>
-        <div className="chat-container">
-          <div className="title">
-            <span>Chat</span>
-          </div>
-          <div className="all-messages">
-            {allMessages.map((message) => (
-              <div className="single-message" key={message.id}>
-                <span
-                  className={
-                    message.sender === "local"
-                      ? "sender-local"
-                      : "sender-remote"
-                  }
-                >
-                  {message.sender === "local"
-                    ? "Your Message"
-                    : "Remote Message"}
-                </span>
-                <span className="date">{message.date}</span>
-                <p className="message-data">{message.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="input">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={handleChange}
-              disabled={disabled}
-            />
-            <button
-              className="button send-message"
-              onClick={handleSendMessage}
-              disabled={disabled}
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="room">
+      <Streaming
+        localVideoSize={localVideoSize}
+        localVideo={localVideo}
+        remoteVideo={remoteVideo}
+        handleScreenShare={handleScreenShare}
+        handleHangUp={handleHangUp}
+        disabled={disabled}
+      />
+      <Chat
+        allMessages={allMessages}
+        inputValue={inputValue}
+        handleChange={handleChange}
+        disabled={disabled}
+        handleSendMessage={handleSendMessage}
+      />
     </div>
   );
 }

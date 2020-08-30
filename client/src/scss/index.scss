@@ -1,0 +1,51 @@
+@import "./button", "./utilities", "./stream", "./chat";
+
+body {
+  font-family: $base-font;
+  margin: 0;
+  padding: 0;
+}
+
+video {
+  object-fit: cover;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-in;
+}
+
+.create-room {
+  display: flex;
+  background-color: $light-white;
+  height: 92vh;
+  padding-top: 4rem;
+  font-size: 1.2rem;
+  font-weight: 300;
+  color: $dark-blue;
+
+  &--container {
+    width: 44vw;
+    margin: 0 auto;
+    text-align: justify;
+
+    ul {
+      margin: 0;
+    }
+  }
+
+  .btn {
+    align-self: flex-end;
+  }
+}
+
+.room {
+  display: flex;
+  margin: 0 auto;
+  width: 100vw;
+  height: 100vh;
+  background-color: $dark-blue-1;
+}
+
+.link {
+  color: $blue;
+  text-decoration: none;
+  cursor: pointer;
+}

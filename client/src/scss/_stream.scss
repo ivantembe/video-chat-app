@@ -1,0 +1,33 @@
+@import "./variables";
+
+.stream {
+  width: 75%;
+  position: relative;
+  padding: 3rem 3rem 0;
+
+  &__title {
+    font-size: 1.6rem;
+    color: $light-white;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+  }
+
+  &--local {
+    width: 250px;
+    height: 180px;
+    position: absolute;
+    top: 10rem;
+    right: 4.5rem;
+  }
+
+  &--remote {
+    width: 100%;
+    height: 78%;
+  }
+
+  &__button--container {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+  }
+}
